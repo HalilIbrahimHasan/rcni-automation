@@ -18,15 +18,53 @@ logger = get_logger(__name__)
 Config.ensure_report_dirs()
 
 
-@pytest.fixture(scope="session")
-def browser_type_launch_args():
+def pytest_addoption(parser):
     """
-    Return browser launch arguments from environment configuration.
+    Register CLI flags for browser display mode.
+
+    --headed and --headless override the HEADLESS value from .env.
+    """
+    group = parser.getgroup("rcni_browser", "RCNI browser launch options")
+    group.addoption(
+        "--headed",
+        action="store_true",
+        default=False,
+        help="Run browser in headed (visible) mode; overrides HEADLESS in .env",
+    )
+    group.addoption(
+        "--headless",
+        action="store_true",
+        default=False,
+        help="Run browser in headless mode; overrides HEADLESS in .env",
+    )
+
+
+def _resolve_headless(request) -> bool:
+    """
+    Determine headless mode from CLI flags or .env fallback.
+
+    Priority: --headed > --headless > HEADLESS env var.
+    """
+    if request.config.getoption("--headed"):
+        return False
+    if request.config.getoption("--headless"):
+        return True
+    return Config.HEADLESS
+
+
+@pytest.fixture(scope="session")
+def browser_type_launch_args(request):
+    """
+    Return browser launch arguments from CLI flags or environment config.
 
     Controls headless mode and slow_mo delay for debugging.
     """
+    headless = _resolve_headless(request)
+    mode = "headless" if headless else "headed"
+    logger.info("Browser launch mode: %s", mode)
+
     return {
-        "headless": Config.HEADLESS,
+        "headless": headless,
         "slow_mo": Config.SLOW_MO,
     }
 

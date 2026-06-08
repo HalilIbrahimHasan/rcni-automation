@@ -79,11 +79,16 @@ pytest -m rcni
 pytest -m download
 ```
 
-### Specific test file (headed mode)
+### Headed vs headless
+
+CLI flags override the `HEADLESS` value in `.env`:
 
 ```bash
-pytest tests/test_rcni_login_and_navigation.py --headed
+pytest tests/test_rcni_login_and_navigation.py --headed    # visible browser
+pytest -m smoke --headless                                 # force headless
 ```
+
+Priority: `--headed` → `--headless` → `HEADLESS` in `.env` (default: `false` = headed).
 
 ### With HTML report
 
