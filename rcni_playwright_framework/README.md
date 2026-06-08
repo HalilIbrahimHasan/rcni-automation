@@ -84,11 +84,20 @@ pytest -m download
 CLI flags override the `HEADLESS` value in `.env`:
 
 ```bash
-pytest tests/test_rcni_login_and_navigation.py --headed    # visible browser
-pytest -m smoke --headless                                 # force headless
+# From inside rcni_playwright_framework/
+pytest tests/test_rcni_login_and_navigation.py --headed -s
+
+# From the parent 'rcni automation' folder (also works)
+pytest rcni_playwright_framework/tests/test_rcni_login_and_navigation.py --headed -s
+
+# Or use your venv python explicitly
+python -m pytest tests/test_rcni_login_and_navigation.py --headed -s
 ```
 
 Priority: `--headed` → `--headless` → `HEADLESS` in `.env` (default: `false` = headed).
+
+If you see `unrecognized arguments: --headed`, run from the project folder with
+`python -m pytest` or set `HEADLESS=false` in `.env` instead.
 
 ### With HTML report
 

@@ -1,0 +1,13 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+python_files = ["test_*.py"]
+addopts = ["-v", "--tb=short", "--strict-markers"]
+markers = [
+    "smoke: Quick smoke tests for critical paths",
+    "regression: Full regression test suite",
+    "rcni: RCNI reconciliation workflow tests",
+    "download: GetInsured 834 download workflow tests",
+]
+log_cli = true
+log_cli_level = "INFO"

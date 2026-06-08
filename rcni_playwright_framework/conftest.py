@@ -18,27 +18,6 @@ logger = get_logger(__name__)
 Config.ensure_report_dirs()
 
 
-def pytest_addoption(parser):
-    """
-    Register CLI flags for browser display mode.
-
-    --headed and --headless override the HEADLESS value from .env.
-    """
-    group = parser.getgroup("rcni_browser", "RCNI browser launch options")
-    group.addoption(
-        "--headed",
-        action="store_true",
-        default=False,
-        help="Run browser in headed (visible) mode; overrides HEADLESS in .env",
-    )
-    group.addoption(
-        "--headless",
-        action="store_true",
-        default=False,
-        help="Run browser in headless mode; overrides HEADLESS in .env",
-    )
-
-
 def _resolve_headless(request) -> bool:
     """
     Determine headless mode from CLI flags or .env fallback.
@@ -60,8 +39,7 @@ def browser_type_launch_args(request):
     Controls headless mode and slow_mo delay for debugging.
     """
     headless = _resolve_headless(request)
-    mode = "headless" if headless else "headed"
-    logger.info("Browser launch mode: %s", mode)
+    Config.log_startup_summary(headless=headless)
 
     return {
         "headless": headless,
