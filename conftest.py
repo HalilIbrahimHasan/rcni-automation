@@ -1,7 +1,14 @@
 """
-Root conftest — registers CLI flags so pytest finds them even when
-the workspace root is 'rcni automation' instead of rcni_playwright_framework.
+Workspace-root conftest — registers CLI flags and Playwright fixtures
+when pytest is run from the parent 'rcni automation' folder.
 """
+
+import sys
+from pathlib import Path
+
+_FRAMEWORK_ROOT = Path(__file__).resolve().parent / "rcni_playwright_framework"
+if str(_FRAMEWORK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_FRAMEWORK_ROOT))
 
 
 def pytest_addoption(parser):
