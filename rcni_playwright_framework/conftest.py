@@ -24,6 +24,27 @@ from utils.screenshot_utils import capture_failure_screenshot
 logger = get_logger(__name__)
 
 Config.ensure_report_dirs()
+logger.info("=== Pytest session starting ===")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Log final exit status — helps diagnose exit code -1 (process killed)."""
+    status_map = {
+        0: "PASSED (all tests ok)",
+        1: "FAILED (test failures)",
+        2: "INTERRUPTED (Ctrl+C)",
+        3: "INTERNAL ERROR",
+        4: "USAGE ERROR",
+        5: "NO TESTS COLLECTED",
+    }
+    msg = status_map.get(exitstatus, f"UNKNOWN exit code {exitstatus}")
+    logger.info("=== Pytest session finished: %s ===", msg)
+    if exitstatus not in (0, 1):
+        logger.warning(
+            "Exit code %s often means the process was killed by the IDE, "
+            "antivirus, or browser crash — check reports/last_run.log",
+            exitstatus,
+        )
 
 
 def pytest_addoption(parser):
@@ -101,13 +122,19 @@ def browser(playwright_instance, browser_launch_config):
     headless = browser_launch_config["headless"]
     browser_name = browser_launch_config["browser"]
     logger.info("Starting browser launch (may try fallbacks if Chrome fails)...")
-    browser = launch_browser(
-        playwright_instance,
-        headless=headless,
-        browser_name=browser_name,
-    )
+    try:
+        browser = launch_browser(
+            playwright_instance,
+            headless=headless,
+            browser_name=browser_name,
+        )
+        logger.info("Browser ready — tests can now run")
+    except Exception as exc:
+        logger.error("Browser launch failed completely: %s", exc)
+        raise
 
     yield browser
+    logger.info("Closing browser")
     browser.close()
 
 
