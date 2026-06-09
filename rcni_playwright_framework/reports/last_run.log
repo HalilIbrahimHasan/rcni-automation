@@ -1,0 +1,27 @@
+2026-06-09 05:18:23 | INFO     | root | Session log file: /Users/selma/Desktop/rcni automation/rcni_playwright_framework/reports/last_run.log
+2026-06-09 05:18:23 | INFO     | conftest | === Pytest session starting ===
+2026-06-09 05:18:23 | INFO     | config | ============================================================
+2026-06-09 05:18:23 | INFO     | config | RCNI Framework startup
+2026-06-09 05:18:23 | INFO     | config | Project root : /Users/selma/Desktop/rcni automation/rcni_playwright_framework
+2026-06-09 05:18:23 | INFO     | config | .env file   : MISSING
+2026-06-09 05:18:23 | INFO     | config | GA_URL      : https://dummy-url.example.com
+2026-06-09 05:18:23 | INFO     | config | GA_EMAIL    : dummy@example.com
+2026-06-09 05:18:23 | INFO     | config | Browser     : chrome
+2026-06-09 05:18:23 | INFO     | config | Browser mode: headed (visible)
+2026-06-09 05:18:23 | INFO     | config | ============================================================
+2026-06-09 05:18:23 | WARNING  | config | No .env file found. Create one: cp .env.example .env then add your credentials.
+2026-06-09 05:18:23 | INFO     | utils.browser_utils | Browser type  : chrome
+2026-06-09 05:18:23 | INFO     | utils.browser_utils | Browser channel: (auto)
+2026-06-09 05:18:23 | INFO     | utils.browser_utils | Browser mode  : headed (visible)
+2026-06-09 05:18:23 | INFO     | utils.browser_utils | Chrome args   : 14 configured
+2026-06-09 05:18:23 | INFO     | conftest | Resolved browser for session: chrome
+2026-06-09 05:18:23 | INFO     | conftest | Starting browser launch (may try fallbacks if Chrome fails)...
+2026-06-09 05:18:23 | INFO     | utils.browser_utils | Browser fallback disabled — only trying chrome
+2026-06-09 05:18:23 | INFO     | utils.browser_utils | Launching browser [primary (.env)]: type=chrome channel=chrome headless=False args=14
+2026-06-09 05:18:28 | INFO     | utils.browser_utils | Browser launched successfully [primary (.env)]
+2026-06-09 05:18:28 | INFO     | conftest | Browser ready — tests can now run
+2026-06-09 05:18:28 | INFO     | utils.video_utils | Video recording disabled
+2026-06-09 05:18:29 | INFO     | tests.test_browser_only | DIAGNOSTIC: opening https://www.google.com
+2026-06-09 05:18:29 | INFO     | tests.test_browser_only | DIAGNOSTIC: browser opened google.com — url=https://www.google.com/
+2026-06-09 05:18:29 | INFO     | conftest | Closing browser
+2026-06-09 05:18:30 | INFO     | conftest | === Pytest session finished: PASSED (all tests ok) ===

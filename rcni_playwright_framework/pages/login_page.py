@@ -58,7 +58,11 @@ class LoginPage(BasePage):
         """
         target_url = url or Config.GA_URL
         logger.info("STEP 1/3: Navigating to %s (timeout %ds)", target_url, Config.NAVIGATION_TIMEOUT // 1000)
-        self.page.goto(target_url, timeout=Config.NAVIGATION_TIMEOUT)
+        self.page.goto(
+            target_url,
+            timeout=Config.NAVIGATION_TIMEOUT,
+            wait_until="domcontentloaded",
+        )
         logger.info("STEP 1/3: Page loaded — waiting for email field")
 
         try:

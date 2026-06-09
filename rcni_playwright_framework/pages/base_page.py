@@ -138,7 +138,7 @@ class BasePage:
         locator: Locator,
         timeout: Optional[int] = None,
         description: str = "element",
-        retries: int = 2,
+        retries: int = 1,
     ) -> None:
         """
         Click an element with visibility wait and limited retries.
@@ -178,7 +178,7 @@ class BasePage:
         value: str,
         timeout: Optional[int] = None,
         description: str = "input",
-        retries: int = 2,
+        retries: int = 1,
     ) -> None:
         """
         Fill an input field with visibility wait and limited retries.

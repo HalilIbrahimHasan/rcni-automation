@@ -199,22 +199,23 @@ def launch_browser(
     Use when headed Chrome fails silently on Windows/corporate machines.
     """
     primary = (browser_name or Config.BROWSER).lower().strip()
-    fallbacks: list[tuple[str, str]] = [(primary, "primary (.env)")]
+    attempts: list[tuple[str, str]] = [(primary, "primary (.env)")]
 
-    if primary != "chrome":
-        fallbacks.append(("chrome", "fallback: installed Chrome"))
-    if primary != "msedge":
-        fallbacks.append(("msedge", "fallback: installed Edge"))
-    if primary != "chromium":
-        fallbacks.append(("chromium", "fallback: bundled Chromium"))
-
-    # Deduplicate browser names while keeping first label
-    seen: set[str] = set()
-    attempts: list[tuple[str, str]] = []
-    for name, label in fallbacks:
-        if name not in seen and name in SUPPORTED_BROWSERS:
-            seen.add(name)
-            attempts.append((name, label))
+    if Config.BROWSER_FALLBACK:
+        extra: list[tuple[str, str]] = []
+        if primary != "chrome":
+            extra.append(("chrome", "fallback: installed Chrome"))
+        if primary != "msedge":
+            extra.append(("msedge", "fallback: installed Edge"))
+        if primary != "chromium":
+            extra.append(("chromium", "fallback: bundled Chromium"))
+        seen = {primary}
+        for name, label in extra:
+            if name not in seen and name in SUPPORTED_BROWSERS:
+                seen.add(name)
+                attempts.append((name, label))
+    else:
+        logger.info("Browser fallback disabled — only trying %s", primary)
 
     last_error: Optional[Exception] = None
 

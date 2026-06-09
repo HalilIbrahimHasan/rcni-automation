@@ -25,9 +25,9 @@ class Config:
 
     # HEADLESS=true → no visible browser | HEADLESS=false → visible browser
     HEADLESS: bool = os.getenv("HEADLESS", "false").lower() in ("true", "1", "yes")
-    SLOW_MO: int = int(os.getenv("SLOW_MO", "200"))
-    VIDEO: bool = os.getenv("VIDEO", "true").lower() in ("true", "1", "yes")
-    TRACE: bool = os.getenv("TRACE", "true").lower() in ("true", "1", "yes")
+    SLOW_MO: int = int(os.getenv("SLOW_MO", "0"))
+    VIDEO: bool = os.getenv("VIDEO", "false").lower() in ("true", "1", "yes")
+    TRACE: bool = os.getenv("TRACE", "false").lower() in ("true", "1", "yes")
 
     # Browser: chromium | chrome | msedge | firefox | webkit
     BROWSER: str = os.getenv("BROWSER", "chrome").lower().strip()
@@ -41,15 +41,21 @@ class Config:
     BROWSER_STABILITY_ARGS: bool = os.getenv(
         "BROWSER_STABILITY_ARGS", "true"
     ).lower() in ("true", "1", "yes")
+    # Try chrome → edge → chromium if primary fails (slow; off by default)
+    BROWSER_FALLBACK: bool = os.getenv("BROWSER_FALLBACK", "false").lower() in (
+        "true", "1", "yes",
+    )
 
-    # Element waits (dropdowns, buttons) — keep moderate, not 2 minutes
-    DEFAULT_TIMEOUT: int = int(os.getenv("DEFAULT_TIMEOUT", "30000"))
+    # Element waits (dropdowns, buttons)
+    DEFAULT_TIMEOUT: int = int(os.getenv("DEFAULT_TIMEOUT", "20000"))
     # Page navigation / login redirect
-    NAVIGATION_TIMEOUT: int = int(os.getenv("NAVIGATION_TIMEOUT", "90000"))
+    NAVIGATION_TIMEOUT: int = int(os.getenv("NAVIGATION_TIMEOUT", "60000"))
     # Report section / table waits after Go click
-    REPORT_WAIT_TIMEOUT: int = int(os.getenv("REPORT_WAIT_TIMEOUT", "20000"))
-    # Max time to launch browser before trying next fallback
-    BROWSER_LAUNCH_TIMEOUT: int = int(os.getenv("BROWSER_LAUNCH_TIMEOUT", "60000"))
+    REPORT_WAIT_TIMEOUT: int = int(os.getenv("REPORT_WAIT_TIMEOUT", "15000"))
+    # Max seconds before browser launch is considered failed
+    BROWSER_LAUNCH_TIMEOUT: int = int(os.getenv("BROWSER_LAUNCH_TIMEOUT", "30000"))
+    # Per-test timeout (seconds) — kills runaway tests
+    TEST_TIMEOUT: int = int(os.getenv("TEST_TIMEOUT", "300"))
     DOWNLOAD_TIMEOUT: int = int(os.getenv("DOWNLOAD_TIMEOUT", "3600000"))
 
     REPORTS_DIR: Path = PROJECT_ROOT / "reports"
