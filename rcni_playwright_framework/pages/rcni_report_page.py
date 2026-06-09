@@ -13,7 +13,7 @@ from utils.config import Config
 from utils.logger import get_logger
 from utils.report_utils import extract_report_rows
 from utils.screenshot_utils import capture_issuer_screenshots, capture_screenshot
-from utils.wait_utils import wait_for_network_settled, wait_for_text
+from utils.wait_utils import wait_for_text
 
 logger = get_logger(__name__)
 
@@ -37,17 +37,23 @@ class RCNIReportPage(BasePage):
         Attempts to detect 'TOP 5 DISCREPANCIES' and 'Issuer Activity'
         sections. Does not fail if sections are absent (no-report case).
         """
+        report_timeout = Config.REPORT_WAIT_TIMEOUT
         for text in [L.TOP_DISCREPANCIES_TEXT, L.ISSUER_ACTIVITY_TEXT]:
             try:
-                wait_for_text(self.page, text, timeout=Config.DEFAULT_TIMEOUT)
+                wait_for_text(self.page, text, timeout=report_timeout)
                 logger.info("Report section visible: %s", text)
             except Exception:
-                logger.warning("Report section not found: %s", text)
+                logger.warning("Report section not found (%ds): %s", report_timeout // 1000, text)
 
+        # Element-based wait only — never use networkidle on GA/RCNI (hangs forever)
         try:
-            wait_for_network_settled(self.page, timeout=Config.NAVIGATION_TIMEOUT)
+            self.resolve_by_test_id("table-row-0-cell-9").wait_for(
+                state="visible",
+                timeout=report_timeout,
+            )
+            logger.info("Report table row visible")
         except Exception:
-            logger.warning("Network idle wait timed out; continuing")
+            logger.warning("No table row visible after Go (%ds)", report_timeout // 1000)
 
     def get_report_rows(self) -> list[dict[str, str]]:
         """

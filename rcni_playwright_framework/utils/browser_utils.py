@@ -87,6 +87,7 @@ def _base_launch_options(headless: bool) -> dict[str, Any]:
         "headless": headless,
         "slow_mo": Config.SLOW_MO,
         "args": build_browser_args(headless),
+        "timeout": Config.BROWSER_LAUNCH_TIMEOUT,
     }
     if Config.BROWSER_EXECUTABLE:
         options["executable_path"] = Config.BROWSER_EXECUTABLE

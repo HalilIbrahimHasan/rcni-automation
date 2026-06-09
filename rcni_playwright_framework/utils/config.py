@@ -42,8 +42,14 @@ class Config:
         "BROWSER_STABILITY_ARGS", "true"
     ).lower() in ("true", "1", "yes")
 
-    DEFAULT_TIMEOUT: int = int(os.getenv("DEFAULT_TIMEOUT", "60000"))
-    NAVIGATION_TIMEOUT: int = int(os.getenv("NAVIGATION_TIMEOUT", "120000"))
+    # Element waits (dropdowns, buttons) — keep moderate, not 2 minutes
+    DEFAULT_TIMEOUT: int = int(os.getenv("DEFAULT_TIMEOUT", "30000"))
+    # Page navigation / login redirect
+    NAVIGATION_TIMEOUT: int = int(os.getenv("NAVIGATION_TIMEOUT", "90000"))
+    # Report section / table waits after Go click
+    REPORT_WAIT_TIMEOUT: int = int(os.getenv("REPORT_WAIT_TIMEOUT", "20000"))
+    # Max time to launch browser before trying next fallback
+    BROWSER_LAUNCH_TIMEOUT: int = int(os.getenv("BROWSER_LAUNCH_TIMEOUT", "60000"))
     DOWNLOAD_TIMEOUT: int = int(os.getenv("DOWNLOAD_TIMEOUT", "3600000"))
 
     REPORTS_DIR: Path = PROJECT_ROOT / "reports"

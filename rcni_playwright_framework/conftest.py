@@ -100,6 +100,7 @@ def browser(playwright_instance, browser_launch_config):
     """
     headless = browser_launch_config["headless"]
     browser_name = browser_launch_config["browser"]
+    logger.info("Starting browser launch (may try fallbacks if Chrome fails)...")
     browser = launch_browser(
         playwright_instance,
         headless=headless,

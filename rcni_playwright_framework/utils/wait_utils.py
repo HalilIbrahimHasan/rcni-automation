@@ -102,22 +102,6 @@ def wait_for_url_or_element(
         page.wait_for_url(url_pattern, timeout=timeout)
 
 
-def wait_for_network_settled(page: Page, timeout: Optional[int] = None) -> None:
-    """
-    Wait for the page network activity to reach an idle state.
-
-    Use sparingly after heavy data loads (e.g. RCNI report tables)
-    when element-based waits alone are insufficient.
-
-    Args:
-        page: Active Playwright Page.
-        timeout: Max wait in milliseconds.
-    """
-    timeout = timeout or Config.NAVIGATION_TIMEOUT
-    logger.info("Waiting for network idle")
-    page.wait_for_load_state("networkidle", timeout=timeout)
-
-
 def wait_for_text(
     page: Page,
     text: str,

@@ -57,8 +57,9 @@ class LoginPage(BasePage):
             url: Override URL; defaults to Config.GA_URL.
         """
         target_url = url or Config.GA_URL
-        logger.info("Navigating to login URL")
+        logger.info("STEP 1/3: Navigating to %s (timeout %ds)", target_url, Config.NAVIGATION_TIMEOUT // 1000)
         self.page.goto(target_url, timeout=Config.NAVIGATION_TIMEOUT)
+        logger.info("STEP 1/3: Page loaded — waiting for email field")
 
         try:
             self.wait_for_visible(
@@ -93,11 +94,12 @@ class LoginPage(BasePage):
         email = email or Config.GA_EMAIL
         password = password or Config.GA_PASSWORD
 
-        logger.info("Logging in as %s", email)
+        logger.info("STEP 2/3: Logging in as %s", email)
 
         self.safe_fill(self._email_locator(), email, description="Email Address")
         self.safe_fill(self._password_locator(), password, description="Password")
         self.safe_click(self._login_button_locator(), description="Login button")
+        logger.info("STEP 3/3: Waiting for Enrollment menu (login success)")
 
         enrollment = self._enrollment_locator()
         self.wait_for_visible(
