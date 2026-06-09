@@ -29,6 +29,19 @@ class Config:
     VIDEO: bool = os.getenv("VIDEO", "true").lower() in ("true", "1", "yes")
     TRACE: bool = os.getenv("TRACE", "true").lower() in ("true", "1", "yes")
 
+    # Browser: chromium | chrome | msedge | firefox | webkit
+    BROWSER: str = os.getenv("BROWSER", "chrome").lower().strip()
+    # Optional Playwright channel override (chrome, msedge, chrome-beta, etc.)
+    BROWSER_CHANNEL: str = os.getenv("BROWSER_CHANNEL", "").strip()
+    # Optional path to browser executable
+    BROWSER_EXECUTABLE: str = os.getenv("BROWSER_EXECUTABLE", "").strip()
+    # Comma-separated extra args, e.g. --disable-gpu,--window-size=1920,1080
+    BROWSER_EXTRA_ARGS: str = os.getenv("BROWSER_EXTRA_ARGS", "")
+    # Add stability args in headed mode (helps VMs / corporate Windows)
+    BROWSER_STABILITY_ARGS: bool = os.getenv(
+        "BROWSER_STABILITY_ARGS", "true"
+    ).lower() in ("true", "1", "yes")
+
     DEFAULT_TIMEOUT: int = int(os.getenv("DEFAULT_TIMEOUT", "60000"))
     NAVIGATION_TIMEOUT: int = int(os.getenv("NAVIGATION_TIMEOUT", "120000"))
     DOWNLOAD_TIMEOUT: int = int(os.getenv("DOWNLOAD_TIMEOUT", "3600000"))
@@ -71,6 +84,7 @@ class Config:
         log.info(".env file   : %s", ENV_FILE if cls.env_file_exists() else "MISSING")
         log.info("GA_URL      : %s", cls.GA_URL)
         log.info("GA_EMAIL    : %s", cls.GA_EMAIL)
+        log.info("Browser     : %s", cls.BROWSER)
         log.info("Browser mode: %s", browser_mode)
         log.info("=" * 60)
 

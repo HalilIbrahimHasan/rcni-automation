@@ -58,6 +58,10 @@ Edit `.env` with your values:
 | `GA_EMAIL` | Login email |
 | `GA_PASSWORD` | Login password |
 | `HEADLESS` | `true` / `false` |
+| `BROWSER` | `chrome`, `chromium`, `msedge`, `firefox`, or `webkit` |
+| `BROWSER_CHANNEL` | Optional Playwright channel (`chrome`, `msedge`) |
+| `BROWSER_STABILITY_ARGS` | Extra stability args for headed mode (`true`/`false`) |
+| `BROWSER_EXTRA_ARGS` | Comma-separated extra Chrome args |
 | `SLOW_MO` | Delay between actions (ms) |
 | `VIDEO` | Enable video recording |
 | `TRACE` | Enable Playwright tracing |
@@ -95,6 +99,16 @@ python -m pytest tests/test_rcni_login_and_navigation.py --headed -s
 ```
 
 Priority: `--headed` → `--headless` → `HEADLESS` in `.env` (default: `false` = headed).
+
+Pick a browser from the command line:
+
+```bash
+python -m pytest tests/test_rcni_login_and_navigation.py --headed --browser=chrome -s
+python -m pytest tests/test_rcni_login_and_navigation.py --headed --browser=msedge -s
+```
+
+On Windows, use `BROWSER=chrome` in `.env` so Playwright opens installed Google Chrome
+(not bundled Chromium). If Chrome fails, the framework auto-falls back to Edge, then Chromium.
 
 If you see `unrecognized arguments: --headed`, run from the project folder with
 `python -m pytest` or set `HEADLESS=false` in `.env` instead.

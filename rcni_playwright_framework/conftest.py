@@ -1,8 +1,8 @@
 """
 Framework conftest — sys.path setup, CLI flags, and Playwright fixtures.
 
-All fixtures live here directly (no pytest_plugins) so pytest can always
-find them regardless of which folder you run tests from.
+Launches Chrome/Edge/Chromium/Firefox/WebKit with robust headed-mode
+arguments and automatic fallbacks when the primary browser fails.
 """
 
 import sys
@@ -16,10 +16,10 @@ if str(_FRAMEWORK_ROOT) not in sys.path:
 import pytest
 from playwright.sync_api import sync_playwright
 
+from utils.browser_utils import build_context_options, launch_browser, log_browser_config
 from utils.config import Config
 from utils.logger import get_logger
 from utils.screenshot_utils import capture_failure_screenshot
-from utils.video_utils import get_video_context_options
 
 logger = get_logger(__name__)
 
@@ -27,19 +27,26 @@ Config.ensure_report_dirs()
 
 
 def pytest_addoption(parser):
-    """Register --headed / --headless flags when running from this folder."""
+    """Register browser CLI flags."""
     group = parser.getgroup("rcni_browser", "RCNI browser launch options")
     group.addoption(
         "--headed",
         action="store_true",
         default=False,
-        help="Run browser in headed (visible) mode; overrides HEADLESS in .env",
+        help="Visible browser window; overrides HEADLESS in .env",
     )
     group.addoption(
         "--headless",
         action="store_true",
         default=False,
-        help="Run browser in headless mode; overrides HEADLESS in .env",
+        help="Headless browser; overrides HEADLESS in .env",
+    )
+    group.addoption(
+        "--browser",
+        action="store",
+        default=None,
+        choices=["chromium", "chrome", "msedge", "firefox", "webkit"],
+        help="Browser to launch; overrides BROWSER in .env",
     )
 
 
@@ -52,29 +59,29 @@ def _resolve_headless(request) -> bool:
     return Config.HEADLESS
 
 
+def _resolve_browser(request) -> str:
+    """Determine browser from CLI flag or .env fallback."""
+    cli_browser = request.config.getoption("--browser")
+    if cli_browser:
+        return cli_browser
+    return Config.BROWSER
+
+
 @pytest.fixture(scope="session")
-def browser_type_launch_args(request):
-    """Return browser launch arguments from CLI flags or environment config."""
+def browser_launch_config(request):
+    """
+    Session-scoped browser launch settings resolved from CLI + .env.
+
+    Returns dict with headless flag and browser name for fixtures.
+    """
     headless = _resolve_headless(request)
+    browser_name = _resolve_browser(request)
+
     Config.log_startup_summary(headless=headless)
+    log_browser_config(headless=headless)
+    logger.info("Resolved browser for session: %s", browser_name)
 
-    return {
-        "headless": headless,
-        "slow_mo": Config.SLOW_MO,
-    }
-
-
-@pytest.fixture(scope="session")
-def browser_context_args():
-    """Return browser context arguments including video recording options."""
-    video_opts = get_video_context_options()
-    base_args = {
-        "viewport": {"width": 1920, "height": 1080},
-        "ignore_https_errors": True,
-    }
-    if video_opts:
-        base_args.update(video_opts)
-    return base_args
+    return {"headless": headless, "browser": browser_name}
 
 
 @pytest.fixture(scope="session")
@@ -85,17 +92,29 @@ def playwright_instance():
 
 
 @pytest.fixture(scope="session")
-def browser(playwright_instance, browser_type_launch_args):
-    """Launch a Chromium browser for the test session."""
-    browser = playwright_instance.chromium.launch(**browser_type_launch_args)
+def browser(playwright_instance, browser_launch_config):
+    """
+    Launch browser with Chrome args and automatic fallbacks.
+
+    If installed Chrome fails, tries Edge then bundled Chromium.
+    """
+    headless = browser_launch_config["headless"]
+    browser_name = browser_launch_config["browser"]
+    browser = launch_browser(
+        playwright_instance,
+        headless=headless,
+        browser_name=browser_name,
+    )
+
     yield browser
     browser.close()
 
 
 @pytest.fixture
-def context(browser, browser_context_args, request):
+def context(browser, browser_launch_config, request):
     """Create a fresh browser context per test with optional tracing."""
-    context = browser.new_context(**browser_context_args)
+    headless = browser_launch_config["headless"]
+    context = browser.new_context(**build_context_options(headless))
 
     if Config.TRACE:
         context.tracing.start(screenshots=True, snapshots=True, sources=True)
@@ -111,11 +130,18 @@ def context(browser, browser_context_args, request):
 
 
 @pytest.fixture
-def page(context):
+def page(context, browser_launch_config):
     """Provide a fresh Page per test from the browser context."""
     page = context.new_page()
     page.set_default_timeout(Config.DEFAULT_TIMEOUT)
     page.set_default_navigation_timeout(Config.NAVIGATION_TIMEOUT)
+
+    if not browser_launch_config["headless"]:
+        try:
+            page.bring_to_front()
+        except Exception:
+            pass
+
     yield page
     page.close()
 
