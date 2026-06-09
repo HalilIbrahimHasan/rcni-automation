@@ -3,6 +3,8 @@ Central configuration loader for the RCNI Playwright framework.
 
 Reads environment variables from .env via python-dotenv and exposes
 typed, validated settings used across pages, fixtures, and utilities.
+
+Install:  pip install python-dotenv   (NOT pip install dotenv)
 """
 
 import os
@@ -19,9 +21,10 @@ ENV_LOADED = load_dotenv(ENV_FILE)
 class Config:
     """Application configuration sourced from environment variables."""
 
-    GA_URL: str = os.getenv("GA_URL", "https://dummy-url.example.com")
-    GA_EMAIL: str = os.getenv("GA_EMAIL", "dummy@example.com")
-    GA_PASSWORD: str = os.getenv("GA_PASSWORD", "dummy_password")
+    # No hardcoded dummy values — must come from .env
+    GA_URL: str = os.getenv("GA_URL", "").strip()
+    GA_EMAIL: str = os.getenv("GA_EMAIL", "").strip()
+    GA_PASSWORD: str = os.getenv("GA_PASSWORD", "").strip()
 
     # HEADLESS=true → no visible browser | HEADLESS=false → visible browser
     HEADLESS: bool = os.getenv("HEADLESS", "false").lower() in ("true", "1", "yes")
@@ -29,32 +32,22 @@ class Config:
     VIDEO: bool = os.getenv("VIDEO", "false").lower() in ("true", "1", "yes")
     TRACE: bool = os.getenv("TRACE", "false").lower() in ("true", "1", "yes")
 
-    # Browser: chromium | chrome | msedge | firefox | webkit
-    BROWSER: str = os.getenv("BROWSER", "chrome").lower().strip()
-    # Optional Playwright channel override (chrome, msedge, chrome-beta, etc.)
+    # Browser: chromium (default, no Chrome install needed) | chrome | msedge | firefox | webkit
+    BROWSER: str = os.getenv("BROWSER", "chromium").lower().strip()
     BROWSER_CHANNEL: str = os.getenv("BROWSER_CHANNEL", "").strip()
-    # Optional path to browser executable
     BROWSER_EXECUTABLE: str = os.getenv("BROWSER_EXECUTABLE", "").strip()
-    # Comma-separated extra args, e.g. --disable-gpu,--window-size=1920,1080
     BROWSER_EXTRA_ARGS: str = os.getenv("BROWSER_EXTRA_ARGS", "")
-    # Add stability args in headed mode (helps VMs / corporate Windows)
     BROWSER_STABILITY_ARGS: bool = os.getenv(
         "BROWSER_STABILITY_ARGS", "true"
     ).lower() in ("true", "1", "yes")
-    # Try chrome → edge → chromium if primary fails (slow; off by default)
     BROWSER_FALLBACK: bool = os.getenv("BROWSER_FALLBACK", "false").lower() in (
         "true", "1", "yes",
     )
 
-    # Element waits (dropdowns, buttons)
     DEFAULT_TIMEOUT: int = int(os.getenv("DEFAULT_TIMEOUT", "20000"))
-    # Page navigation / login redirect
     NAVIGATION_TIMEOUT: int = int(os.getenv("NAVIGATION_TIMEOUT", "60000"))
-    # Report section / table waits after Go click
     REPORT_WAIT_TIMEOUT: int = int(os.getenv("REPORT_WAIT_TIMEOUT", "15000"))
-    # Max seconds before browser launch is considered failed
     BROWSER_LAUNCH_TIMEOUT: int = int(os.getenv("BROWSER_LAUNCH_TIMEOUT", "30000"))
-    # Per-test timeout (seconds) — kills runaway tests
     TEST_TIMEOUT: int = int(os.getenv("TEST_TIMEOUT", "300"))
     DOWNLOAD_TIMEOUT: int = int(os.getenv("DOWNLOAD_TIMEOUT", "3600000"))
 
@@ -74,13 +67,36 @@ class Config:
         return ENV_FILE.exists()
 
     @classmethod
-    def is_placeholder_config(cls) -> bool:
-        """Return True if GA_URL or credentials are still dummy defaults."""
-        return (
-            "dummy" in cls.GA_URL.lower()
-            or "dummy" in cls.GA_EMAIL.lower()
-            or cls.GA_PASSWORD == "dummy_password"
-        )
+    def is_ga_configured(cls) -> bool:
+        """Return True if GA_URL, GA_EMAIL, and GA_PASSWORD are all set in .env."""
+        return bool(cls.GA_URL and cls.GA_EMAIL and cls.GA_PASSWORD)
+
+    @classmethod
+    def require_ga_config(cls) -> None:
+        """
+        Raise a clear error if GA credentials are missing.
+
+        Call at the start of login/RCNI tests (not browser-only tests).
+        """
+        missing = []
+        if not cls.GA_URL:
+            missing.append("GA_URL")
+        if not cls.GA_EMAIL:
+            missing.append("GA_EMAIL")
+        if not cls.GA_PASSWORD:
+            missing.append("GA_PASSWORD")
+
+        if not cls.env_file_exists():
+            raise RuntimeError(
+                f".env file not found at {ENV_FILE}\n"
+                "Create it: copy .env.example to .env and add your credentials."
+            )
+
+        if missing:
+            raise RuntimeError(
+                f"Missing required values in .env: {', '.join(missing)}\n"
+                f"Edit: {ENV_FILE}"
+            )
 
     @classmethod
     def log_startup_summary(cls, headless: bool) -> None:
@@ -94,21 +110,21 @@ class Config:
         log.info("RCNI Framework startup")
         log.info("Project root : %s", PROJECT_ROOT)
         log.info(".env file   : %s", ENV_FILE if cls.env_file_exists() else "MISSING")
-        log.info("GA_URL      : %s", cls.GA_URL)
-        log.info("GA_EMAIL    : %s", cls.GA_EMAIL)
+        log.info("GA_URL      : %s", cls.GA_URL or "(not set)")
+        log.info("GA_EMAIL    : %s", cls.GA_EMAIL or "(not set)")
         log.info("Browser     : %s", cls.BROWSER)
         log.info("Browser mode: %s", browser_mode)
         log.info("=" * 60)
 
         if not cls.env_file_exists():
             log.warning(
-                "No .env file found. Create one: cp .env.example .env "
+                "No .env file found. Create one: copy .env.example to .env "
                 "then add your credentials."
             )
-        elif cls.is_placeholder_config():
+        elif not cls.is_ga_configured():
             log.warning(
-                "Credentials still look like placeholders. "
-                "Update GA_URL, GA_EMAIL, and GA_PASSWORD in .env"
+                "GA_URL / GA_EMAIL / GA_PASSWORD not set in .env — "
+                "login tests will fail until you add them."
             )
 
     @classmethod

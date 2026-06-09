@@ -28,21 +28,35 @@ rcni_playwright_framework/
 
 ## Setup
 
-### 1. Create a Virtual Environment
+### Windows (quick — run once)
+
+```powershell
+cd rcni_playwright_framework
+.\setup.ps1
+```
+
+### Manual setup
+
+#### 1. Create a Virtual Environment
 
 ```bash
 cd rcni_playwright_framework
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate        # macOS / Linux
-# .venv\Scripts\activate         # Windows
+.\.venv\Scripts\activate          # Windows PowerShell
 ```
 
-### 2. Install Dependencies
+#### 2. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
-playwright install chromium
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m playwright install chromium
+python -m playwright install chrome
 ```
+
+> **ModuleNotFoundError: pytest** — you skipped step 2 or the venv is not activated.
+> Always use `python -m pytest` (not bare `pytest`) so the correct environment is used.
 
 ### 3. Configure Environment
 

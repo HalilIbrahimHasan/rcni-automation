@@ -1,3 +1,4 @@
+# Python 3.11 or 3.12 required (NOT 3.14 — Playwright sync API times out on 3.14)
 pytest>=8.0.0
 playwright>=1.40.0
 python-dotenv>=1.0.0

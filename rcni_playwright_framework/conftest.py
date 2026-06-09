@@ -13,6 +13,18 @@ _FRAMEWORK_ROOT = Path(__file__).resolve().parent
 if str(_FRAMEWORK_ROOT) not in sys.path:
     sys.path.insert(0, str(_FRAMEWORK_ROOT))
 
+# Playwright does not support Python 3.14+ yet — causes sync_playwright() timeout
+if sys.version_info >= (3, 14):
+    raise RuntimeError(
+        f"Python {sys.version_info.major}.{sys.version_info.minor} is not supported. "
+        "Playwright requires Python 3.11 or 3.12.\n"
+        "Fix: install Python 3.12 from python.org, then recreate .venv:\n"
+        "  py -3.12 -m venv .venv\n"
+        "  .\\.venv\\Scripts\\activate\n"
+        "  python -m pip install -r requirements.txt\n"
+        "  python -m playwright install chromium"
+    )
+
 import pytest
 from playwright.sync_api import sync_playwright
 

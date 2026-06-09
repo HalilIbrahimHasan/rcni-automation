@@ -56,6 +56,7 @@ class LoginPage(BasePage):
         Args:
             url: Override URL; defaults to Config.GA_URL.
         """
+        Config.require_ga_config()
         target_url = url or Config.GA_URL
         logger.info("STEP 1/3: Navigating to %s (timeout %ds)", target_url, Config.NAVIGATION_TIMEOUT // 1000)
         self.page.goto(
