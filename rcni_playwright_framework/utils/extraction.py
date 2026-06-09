@@ -16,18 +16,6 @@ def find_rcni_root() -> Path:
     raise FileNotFoundError("RCNI/extraction/zipped bulunamadı.")
 
 
-def unique_path(target: Path) -> Path:
-    if not target.exists():
-        return target
-
-    counter = 1
-    while True:
-        new_path = target.with_name(f"{target.stem}__duplicate_{counter}{target.suffix}")
-        if not new_path.exists():
-            return new_path
-        counter += 1
-
-
 def log(log_file: Path, message: str):
     line = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}"
     print(line)
@@ -35,7 +23,19 @@ def log(log_file: Path, message: str):
         f.write(line + "\n")
 
 
-def detect_file_type(file_path: Path) -> str:
+def unique_path(path: Path) -> Path:
+    if not path.exists():
+        return path
+
+    counter = 1
+    while True:
+        new_path = path.with_name(f"{path.stem}__duplicate_{counter}{path.suffix}")
+        if not new_path.exists():
+            return new_path
+        counter += 1
+
+
+def detect_type(file_path: Path) -> str:
     try:
         with open(file_path, "rb") as f:
             header = f.read(8)
@@ -55,96 +55,95 @@ def detect_file_type(file_path: Path) -> str:
         return "unknown"
 
 
-def copy_file(file_path: Path, output_folder: Path, log_file: Path):
-    destination = unique_path(output_folder / file_path.name)
+def clean_folder(folder: Path):
+    folder.mkdir(parents=True, exist_ok=True)
+
+    for item in folder.iterdir():
+        if item.is_file():
+            item.unlink()
+        elif item.is_dir():
+            shutil.rmtree(item)
+
+
+def copy_final_file(file_path: Path, unzipped_folder: Path, log_file: Path):
+    destination = unique_path(unzipped_folder / file_path.name)
     shutil.copy2(file_path, destination)
-    log(log_file, f"COPIED NORMAL FILE: {file_path.name} -> {destination.name}")
+    log(log_file, f"FINAL FILE COPIED: {file_path.name} -> {destination.name}")
 
 
-def extract_zip(file_path: Path, output_folder: Path, log_file: Path):
+def extract_zip_to_temp(file_path: Path, temp_folder: Path, log_file: Path):
+    extract_dir = temp_folder / f"{file_path.stem}_zip_extract"
+    extract_dir = unique_path(extract_dir)
+    extract_dir.mkdir(parents=True, exist_ok=True)
+
     with zipfile.ZipFile(file_path, "r") as zip_ref:
-        for member in zip_ref.infolist():
-            if member.is_dir():
-                continue
+        zip_ref.extractall(extract_dir)
 
-            file_name = Path(member.filename).name
-            if not file_name:
-                continue
-
-            destination = unique_path(output_folder / file_name)
-
-            with zip_ref.open(member) as source, open(destination, "wb") as target:
-                shutil.copyfileobj(source, target)
-
-            log(log_file, f"ZIP EXTRACTED: {file_path.name} -> {destination.name}")
+    log(log_file, f"ZIP EXTRACTED TO TEMP: {file_path.name}")
+    return extract_dir
 
 
-def extract_gz(file_path: Path, output_folder: Path, log_file: Path):
+def extract_tar_to_temp(file_path: Path, temp_folder: Path, log_file: Path):
+    extract_dir = temp_folder / f"{file_path.stem}_tar_extract"
+    extract_dir = unique_path(extract_dir)
+    extract_dir.mkdir(parents=True, exist_ok=True)
+
+    with tarfile.open(file_path, "r:*") as tar_ref:
+        tar_ref.extractall(extract_dir)
+
+    log(log_file, f"TAR EXTRACTED TO TEMP: {file_path.name}")
+    return extract_dir
+
+
+def extract_gz_to_temp(file_path: Path, temp_folder: Path, log_file: Path):
     output_name = file_path.stem
 
-    if not output_name.lower().endswith(".xml"):
+    if not Path(output_name).suffix:
         output_name = output_name + ".xml"
 
-    destination = unique_path(output_folder / output_name)
+    output_file = unique_path(temp_folder / output_name)
 
-    with gzip.open(file_path, "rb") as gz_file, open(destination, "wb") as out_file:
-        shutil.copyfileobj(gz_file, out_file)
+    with gzip.open(file_path, "rb") as gz_file:
+        with open(output_file, "wb") as out_file:
+            shutil.copyfileobj(gz_file, out_file)
 
-    log(log_file, f"GZ EXTRACTED: {file_path.name} -> {destination.name}")
-
-
-def extract_tar(file_path: Path, output_folder: Path, log_file: Path):
-    with tarfile.open(file_path, "r:*") as tar_ref:
-        for member in tar_ref.getmembers():
-            if not member.isfile():
-                continue
-
-            file_name = Path(member.name).name
-            if not file_name:
-                continue
-
-            destination = unique_path(output_folder / file_name)
-            source = tar_ref.extractfile(member)
-
-            if source:
-                with source, open(destination, "wb") as target:
-                    shutil.copyfileobj(source, target)
-
-                log(log_file, f"TAR EXTRACTED: {file_path.name} -> {destination.name}")
+    log(log_file, f"GZ EXTRACTED TO TEMP: {file_path.name} -> {output_file.name}")
+    return output_file
 
 
-def process_file(file_path: Path, output_folder: Path, log_file: Path):
-    file_type = detect_file_type(file_path)
+def process_item(item: Path, temp_folder: Path, unzipped_folder: Path, log_file: Path, queue: list):
+    if item.is_dir():
+        log(log_file, f"FOLDER FOUND, READING INSIDE: {item}")
+        for child in item.iterdir():
+            queue.append(child)
+        return
+
+    if not item.is_file():
+        return
+
+    file_type = detect_type(item)
 
     try:
         if file_type == "zip":
-            extract_zip(file_path, output_folder, log_file)
-
-        elif file_type == "gz":
-            extract_gz(file_path, output_folder, log_file)
+            extracted_dir = extract_zip_to_temp(item, temp_folder, log_file)
+            queue.append(extracted_dir)
 
         elif file_type == "tar":
-            extract_tar(file_path, output_folder, log_file)
+            extracted_dir = extract_tar_to_temp(item, temp_folder, log_file)
+            queue.append(extracted_dir)
+
+        elif file_type == "gz":
+            extracted_file = extract_gz_to_temp(item, temp_folder, log_file)
+            queue.append(extracted_file)
 
         elif file_type == "normal":
-            copy_file(file_path, output_folder, log_file)
+            copy_final_file(item, unzipped_folder, log_file)
 
         else:
-            log(log_file, f"UNKNOWN FILE TYPE SKIPPED: {file_path}")
+            log(log_file, f"UNKNOWN / SKIPPED: {item}")
 
     except Exception as e:
-        log(log_file, f"ERROR: {file_path.name} | {type(e).__name__}: {e}")
-
-
-def clear_unzipped_folder(unzipped_folder: Path, log_file: Path):
-    for item in unzipped_folder.iterdir():
-        try:
-            if item.is_file():
-                item.unlink()
-            elif item.is_dir():
-                shutil.rmtree(item)
-        except Exception as e:
-            log(log_file, f"ERROR CLEANING: {item} | {type(e).__name__}: {e}")
+        log(log_file, f"ERROR: {item} | {type(e).__name__}: {e}")
 
 
 def extract_all_files():
@@ -153,50 +152,43 @@ def extract_all_files():
     zipped_folder = rcni_root / "extraction" / "zipped"
     unzipped_folder = rcni_root / "extraction" / "unzipped"
     logs_folder = rcni_root / "extraction" / "logs"
+    temp_folder = rcni_root / "extraction" / "_temp_extract"
 
-    unzipped_folder.mkdir(parents=True, exist_ok=True)
     logs_folder.mkdir(parents=True, exist_ok=True)
-
     log_file = logs_folder / f"extraction_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 
     log(log_file, "STARTED")
-    log(log_file, f"SOURCE: {zipped_folder}")
-    log(log_file, f"TARGET: {unzipped_folder}")
+    log(log_file, f"SOURCE ZIPPED: {zipped_folder}")
+    log(log_file, f"TARGET UNZIPPED: {unzipped_folder}")
 
-    clear_unzipped_folder(unzipped_folder, log_file)
+    clean_folder(unzipped_folder)
+    clean_folder(temp_folder)
 
-    processed = set()
+    queue = list(zipped_folder.iterdir())
 
-    while True:
-        files_to_process = [
-            p for p in zipped_folder.rglob("*")
-            if p.is_file() and p.resolve() not in processed
-        ] + [
-            p for p in unzipped_folder.rglob("*")
-            if p.is_file()
-            and p.resolve() not in processed
-            and detect_file_type(p) in ["zip", "gz", "tar"]
-        ]
+    while queue:
+        item = queue.pop(0)
+        process_item(item, temp_folder, unzipped_folder, log_file, queue)
 
-        if not files_to_process:
-            break
+    shutil.rmtree(temp_folder, ignore_errors=True)
 
-        for file_path in files_to_process:
-            processed.add(file_path.resolve())
-            process_file(file_path, unzipped_folder, log_file)
+    remaining_folders = [p for p in unzipped_folder.iterdir() if p.is_dir()]
+    remaining_archives = [
+        p for p in unzipped_folder.iterdir()
+        if p.is_file() and detect_type(p) in ["zip", "gz", "tar"]
+    ]
 
-            if file_path.is_file() and file_path.parent.resolve() == unzipped_folder.resolve():
-                if detect_file_type(file_path) in ["zip", "gz", "tar"]:
-                    file_path.unlink()
-                    log(log_file, f"REMOVED ARCHIVE FROM UNZIPPED: {file_path.name}")
-
-    for folder in sorted([p for p in unzipped_folder.rglob("*") if p.is_dir()], reverse=True):
+    for folder in remaining_folders:
         shutil.rmtree(folder)
-        log(log_file, f"REMOVED FOLDER: {folder}")
+        log(log_file, f"REMOVED UNWANTED FOLDER FROM FINAL: {folder.name}")
 
-    total_output = len([p for p in unzipped_folder.rglob("*") if p.is_file()])
+    for archive in remaining_archives:
+        archive.unlink()
+        log(log_file, f"REMOVED UNWANTED ARCHIVE FROM FINAL: {archive.name}")
 
-    log(log_file, f"TOTAL OUTPUT FILES: {total_output}")
+    final_files = [p for p in unzipped_folder.iterdir() if p.is_file()]
+
+    log(log_file, f"FINAL FILE COUNT: {len(final_files)}")
     log(log_file, "COMPLETED")
 
 
